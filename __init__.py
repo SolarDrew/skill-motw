@@ -15,7 +15,7 @@ class MarkExperience(Event):
 
 
 MODIFIER_REGEX = "[+-]?[0,1,2,3]"
-STAT_REGEX = f"(?:(?:!cool|!tough|!sharp|!charm|!weird) {MODIFIER_REGEX})"
+STAT_REGEX = f"(?:(?:!agressive|!bold|!talk|!tech) {MODIFIER_REGEX})"
 
 
 async def get_mxid(nick, room, connector):
@@ -83,20 +83,19 @@ async def help(opsdroid, config, message):
         Making Checks
         </h1>
         <ul>
-            <li>Charm</li>
-            <li>Cool</li>
-            <li>Sharp</li>
-            <li>Tough</li>
-            <li>Weird</li>
+            <li>Aggressive</li>
+            <li>Bold</li>
+            <li>Talk</li>
+            <li>Tech</li>
         </ul>
         <p>
-        You can roll against these stats by typing <code>+stat</code>, i.e. <code>+Weird</code>.
-        You can append a single modifier on a roll by doing <code>+stat +x</code>, i.e. <code>+weird -1</code>.
+        You can roll against these stats by typing <code>+stat</code>, i.e. <code>+Tech</code>.
+        You can append a single modifier on a roll by doing <code>+stat +x</code>, i.e. <code>+tech -1</code>.
         </p>
         <p>
-        You can set your stats with <code>!stat number</code>, i.e. <code>!weird +1</code> you can
+        You can set your stats with <code>!stat number</code>, i.e. <code>!tech +1</code> you can
         set as many stats as you like in one command, i.e.
-        <code>!weird +1 !charm +1 !sharp -1</code>.
+        <code>!tech +1 !talk +1 !bold -1</code>.
         </p>
         <p>
         You can retrieve your characters stats with <code>!stats</code>.
@@ -113,6 +112,7 @@ async def help(opsdroid, config, message):
         <p>
         Remember you can set your nick to your character name with
         <code>/myroomnick</code> in Riot if you desire.
+        (Extra bit of fun: use emoji in your nick to indicate division and rank, e.g. Lt. Cmdr Data :orange_square: :yellow_circle_:yellow_circle::black_circle:.)
         </p>\
     """))
 
@@ -130,7 +130,7 @@ async def set_stats(opsdroid, config, message):
     stats = tuple(s.split(' ') for s in stats)
     stats = dict((s[0].lower()[1:], int(s[1])) for s in stats)
 
-    all_stats = await opsdroid.memory.get("motw_stats") or {}
+    all_stats = await opsdroid.memory.get("pbta_stats") or {}
     if not all_stats or mxid not in all_stats:
         existing_stats = {}
     else:
@@ -141,7 +141,7 @@ async def set_stats(opsdroid, config, message):
     await message.respond(f"Setting stats for {nick}: {pretty_stats(stats)}")
 
     new_stats = {**all_stats, **{mxid: stats}}
-    await opsdroid.memory.put("motw_stats", new_stats)
+    await opsdroid.memory.put("pbta_stats", new_stats)
 
 
 @match_regex("!stats ?(?P<nick>.*)")
@@ -149,8 +149,8 @@ async def set_stats(opsdroid, config, message):
 async def get_stats(opsdroid, config, message):
     nick, mxid = await get_nick(config, message)
 
-    motw_stats = await opsdroid.memory.get("motw_stats")
-    if not motw_stats or mxid not in motw_stats:
+    motw_stats = await opsdroid.memory.get("pbta_stats")
+    if not pbta_stats or mxid not in pbta_stats:
         await message.respond(rf"No stats found for {nick}, run '!<stat> +number'")
         return
 
@@ -158,7 +158,7 @@ async def get_stats(opsdroid, config, message):
     await message.respond(f"Stats for {nick}: {pretty_stats(stats)}")
 
 
-@match_regex(rf"\+(?P<stat>cool|tough|sharp|charm|weird) ?(?P<modifier>{MODIFIER_REGEX})?", case_sensitive=False)
+@match_regex(rf"\+(?P<stat>aggressive|bold|talk|tech) ?(?P<modifier>{MODIFIER_REGEX})?", case_sensitive=False)
 @memory_in_event_room
 async def roll(opsdroid, config, message):
     stat = message.regex.capturesdict()['stat'][0]
@@ -166,13 +166,13 @@ async def roll(opsdroid, config, message):
     modifier = int(modifier)
     mxid = message.user_id
 
-    motw_stats = await opsdroid.memory.get("motw_stats")
+    motw_stats = await opsdroid.memory.get("pbta_stats")
 
-    if not motw_stats or mxid not in motw_stats:
+    if not pbta_stats or mxid not in pbta_stats:
         await message.respond(rf"No stats found for {message.user}, run '!{stat} +number'")
         return
 
-    stats = motw_stats[mxid]
+    stats = pbta_stats[mxid]
 
     if stat not in stats:
         await message.respond(
